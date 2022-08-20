@@ -1,0 +1,20 @@
+[package]
+name = "bevy-jam-2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.8"
+console_error_panic_hook = "0.1.7"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
