@@ -8,29 +8,39 @@ mod beams;
 mod enemies;
 mod mouse;
 mod player;
+mod ui;
 
 use beams::*;
 use enemies::*;
 use mouse::*;
 use player::*;
+use ui::*;
 
 fn main() {
     App::new()
         // .insert_resource(ClearColor(Color::WHITE))
         .add_plugins(DefaultPlugins)
         .add_plugin(Material2dPlugin::<BeamMaterial>::default())
+        .add_plugin(Material2dPlugin::<EnemyMaterial>::default())
         .init_resource::<MousePos>()
+        .init_resource::<EnemySymbols>()
         .insert_resource(ClosestBeam(BeamColor::Green))
         .insert_resource(EnemySpawnerTimer(Timer::from_seconds(1.0, true)))
+        .insert_resource(PlayerHealth { health: 30 })
         .add_startup_system(setup)
+        .add_startup_system(setup_ui)
         .add_system(move_player)
+        .add_system(end_game_if_health_is_0)
         .add_system(move_light_beam)
-        .add_system(update_time)
+        .add_system(update_beam_material)
         .add_system(update_mouse_pos)
         .add_system(update_closest_beam)
         .add_system(spawn_enemies)
         .add_system(move_enemies)
         .add_system(damage_enemies)
+        .add_system(damage_player)
+        .add_system(update_enemy_material)
+        .add_system(update_player_health_ui)
         .run();
 }
 
@@ -122,6 +132,7 @@ pub struct Enemy;
 #[derive(Component)]
 pub struct Killable {
     seconds: f32,
+    under_damage: bool,
 }
 
 #[derive(Component, PartialEq, Eq, Copy, Clone)]

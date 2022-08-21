@@ -59,7 +59,7 @@ pub struct BeamMaterial {
     pub selected: f32,
 }
 
-pub fn update_time(
+pub fn update_beam_material(
     query: Query<(&Handle<BeamMaterial>, &BeamColor)>,
     mut a: ResMut<Assets<BeamMaterial>>,
     time: Res<Time>,

@@ -25,3 +25,13 @@ pub fn move_player(
         trans.translation.x = (diff.x + trans.translation.x).clamp(-600.0, -525.0);
     }
 }
+
+pub struct PlayerHealth {
+    pub health: i8,
+}
+
+pub fn end_game_if_health_is_0(health: Res<PlayerHealth>) {
+    if health.is_changed() && health.health <= 0 {
+        // TODO end game
+    }
+}
