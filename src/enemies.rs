@@ -95,11 +95,14 @@ pub fn move_enemies(
     }
 }
 
+pub struct EnemiesKilled(pub usize);
+
 pub fn damage_enemies(
     mut cmd: Commands,
     mut killable: Query<(Entity, &Transform, &Colour, &mut Killable)>,
     beams: Query<(&Transform, &Pivot, &BeamColor)>,
     time: Res<Time>,
+    mut killed: ResMut<EnemiesKilled>,
 ) {
     'ent: for (entity, trans, colour, mut killable) in &mut killable {
         // get the beams currently hitting the enemy
@@ -130,6 +133,7 @@ pub fn damage_enemies(
 
         if killable.seconds > 2.0 {
             cmd.entity(entity).despawn_recursive();
+            killed.0 += 1;
         }
     }
 }

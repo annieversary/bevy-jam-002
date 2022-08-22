@@ -24,6 +24,7 @@ fn main() {
         .add_plugin(Material2dPlugin::<EnemyMaterial>::default())
         .init_resource::<MousePos>()
         .init_resource::<EnemySymbols>()
+        .insert_resource(EnemiesKilled(0))
         .insert_resource(ClosestBeam(BeamColor::Green))
         .insert_resource(EnemySpawnerTimer(Timer::from_seconds(1.0, true)))
         .insert_resource(PlayerHealth { health: 30 })
@@ -41,6 +42,7 @@ fn main() {
         .add_system(damage_player)
         .add_system(update_enemy_material)
         .add_system(update_player_health_ui)
+        .add_system(update_points_ui)
         .run();
 }
 
