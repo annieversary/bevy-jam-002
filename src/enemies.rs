@@ -17,6 +17,7 @@ pub fn spawn_enemies(
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut timer: ResMut<EnemySpawnerTimer>,
     time: Res<Time>,
+    game_start: Res<GameStartTime>,
     mut mats: ResMut<Assets<EnemyMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     symbols: Res<EnemySymbols>,
@@ -35,7 +36,7 @@ pub fn spawn_enemies(
     let pivots = pivots.iter().collect::<Vec<_>>();
     let pivot = Vec2::new(spawn_x, pivots.choose(&mut rng).unwrap().0.y);
     // choose color
-    let c = get_random_colour(&mut rng, time.seconds_since_startup());
+    let c = get_random_colour(&mut rng, time.seconds_since_startup() - game_start.0);
 
     let mesh = meshes.add(Mesh::from(shape::Quad::default()));
     let material = mats.add(EnemyMaterial {
@@ -74,6 +75,33 @@ pub fn get_random_colour(rng: &mut ThreadRng, time: f64) -> Colour {
         return *[Colour::Red, Colour::Green, Colour::Blue]
             .choose(rng)
             .unwrap();
+    }
+    if time < 40.0 {
+        return *[
+            Colour::Red,
+            Colour::Green,
+            Colour::Blue,
+            Colour::Red,
+            Colour::Green,
+            Colour::Blue,
+            Colour::Cyan,
+            Colour::Magenta,
+            Colour::Yellow,
+        ]
+        .choose(rng)
+        .unwrap();
+    }
+    if time < 60.0 {
+        return *[
+            Colour::Red,
+            Colour::Green,
+            Colour::Blue,
+            Colour::Cyan,
+            Colour::Magenta,
+            Colour::Yellow,
+        ]
+        .choose(rng)
+        .unwrap();
     }
     *ALL_COLORS.choose(rng).unwrap()
 }

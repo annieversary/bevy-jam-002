@@ -7,6 +7,7 @@ use bevy::{
 };
 
 mod beams;
+mod death_screen;
 mod enemies;
 mod menu;
 mod mouse;
@@ -14,26 +15,44 @@ mod player;
 mod ui;
 
 use beams::*;
+use death_screen::*;
 use enemies::*;
 use menu::*;
 use mouse::*;
 use player::*;
 use ui::*;
 
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+pub enum GameState {
+    Menu,
+    Game,
+    Death,
+}
+
+pub const BEAM_LENGTH: f32 = 1000.0;
+pub const ENEMY_RADIUS: f32 = 50.0;
+pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
+pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
+
 fn main() {
     App::new()
-        // .insert_resource(ClearColor(Color::WHITE))
+        .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.1)))
         .add_plugins(DefaultPlugins)
         .add_state(GameState::Menu)
         .add_plugin(Material2dPlugin::<BeamMaterial>::default())
         .add_plugin(Material2dPlugin::<EnemyMaterial>::default())
+        // .add_plugin(bevy_inspector_egui::WorldInspectorPlugin::new())
+        .init_resource::<GameAssets>()
         .init_resource::<MousePos>()
         .init_resource::<EnemySymbols>()
         .insert_resource(EnemiesKilled(0))
+        .insert_resource(GameStartTime(0.0))
         .insert_resource(ClosestBeam(BeamColor::Green))
         .insert_resource(EnemySpawnerTimer(Timer::from_seconds(1.0, true)))
         .insert_resource(PlayerHealth { health: 30 })
         .add_startup_system(setup)
+        .add_system(button_interaction)
         .add_system_set(SystemSet::on_enter(GameState::Menu).with_system(setup_menu))
         .add_system_set(SystemSet::on_update(GameState::Menu).with_system(menu))
         .add_system_set(SystemSet::on_exit(GameState::Menu).with_system(cleanup::<CleanupMenu>))
@@ -59,11 +78,11 @@ fn main() {
                 .with_system(update_points_ui),
         )
         .add_system_set(SystemSet::on_exit(GameState::Game).with_system(cleanup::<CleanupGame>))
+        .add_system_set(SystemSet::on_enter(GameState::Death).with_system(setup_death_screen))
+        .add_system_set(SystemSet::on_update(GameState::Death).with_system(death_screen))
+        .add_system_set(SystemSet::on_exit(GameState::Death).with_system(cleanup::<CleanupDeath>))
         .run();
 }
-
-const BEAM_LENGTH: f32 = 1000.0;
-const ENEMY_RADIUS: f32 = 50.0;
 
 fn setup(mut commands: Commands, a: Res<AssetServer>) {
     a.watch_for_changes().unwrap();
@@ -73,12 +92,24 @@ fn setup(mut commands: Commands, a: Res<AssetServer>) {
         .insert(MainCamera);
 }
 
+pub struct GameStartTime(f64);
+
 fn game_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut beam_mats: ResMut<Assets<BeamMaterial>>,
+
+    mut health: ResMut<PlayerHealth>,
+    mut score: ResMut<EnemiesKilled>,
+    mut start: ResMut<GameStartTime>,
+    time: Res<Time>,
 ) {
+    // reset resources
+    health.health = 30;
+    score.0 = 0;
+    start.0 = time.seconds_since_startup();
+
     let mesh = meshes.add(Mesh::from(shape::Quad::default()));
 
     let beams = [
@@ -129,6 +160,8 @@ fn game_setup(
 pub struct CleanupMenu;
 #[derive(Component)]
 pub struct CleanupGame;
+#[derive(Component)]
+pub struct CleanupDeath;
 pub fn cleanup<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive();
@@ -214,5 +247,39 @@ impl Colour {
             .fold(Color::NONE, |a, b| a + b);
         c.set_a(1.0);
         c
+    }
+}
+
+pub struct GameAssets {
+    font: Handle<Font>,
+}
+impl FromWorld for GameAssets {
+    fn from_world(world: &mut World) -> Self {
+        let a = world.get_resource_mut::<AssetServer>().unwrap();
+
+        Self {
+            font: a.load("fonts/gameplay.ttf"),
+        }
+    }
+}
+
+pub fn button_interaction(
+    mut interaction_query: Query<
+        (&Interaction, &mut UiColor),
+        (Changed<Interaction>, With<Button>),
+    >,
+) {
+    for (interaction, mut color) in &mut interaction_query {
+        match *interaction {
+            Interaction::Clicked => {
+                *color = PRESSED_BUTTON.into();
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            }
+        }
     }
 }

@@ -30,8 +30,8 @@ pub struct PlayerHealth {
     pub health: i8,
 }
 
-pub fn end_game_if_health_is_0(health: Res<PlayerHealth>) {
-    if health.is_changed() && health.health <= 0 {
-        // TODO end game
+pub fn end_game_if_health_is_0(health: Res<PlayerHealth>, mut state: ResMut<State<GameState>>) {
+    if health.health <= 0 {
+        state.set(GameState::Death).unwrap();
     }
 }

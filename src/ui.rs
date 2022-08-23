@@ -1,13 +1,11 @@
 use crate::*;
 
-pub fn setup_ui(mut cmd: Commands, asset_server: Res<AssetServer>) {
-    let font = asset_server.load("fonts/gameplay.ttf");
-
+pub fn setup_ui(mut cmd: Commands, a: Res<GameAssets>) {
     cmd.spawn_bundle(
         TextBundle::from_section(
             "health: 30",
             TextStyle {
-                font: font.clone(),
+                font: a.font.clone(),
                 font_size: 80.0,
                 color: Color::WHITE,
             },
@@ -30,7 +28,7 @@ pub fn setup_ui(mut cmd: Commands, asset_server: Res<AssetServer>) {
         TextBundle::from_section(
             "points: 0",
             TextStyle {
-                font,
+                font: a.font.clone(),
                 font_size: 80.0,
                 color: Color::WHITE,
             },

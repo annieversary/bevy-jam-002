@@ -1,6 +1,6 @@
 use crate::*;
 
-pub fn setup_menu(mut commands: Commands, a: Res<GameAssets>) {
+pub fn setup_death_screen(mut commands: Commands, a: Res<GameAssets>, score: Res<EnemiesKilled>) {
     commands
         .spawn_bundle(NodeBundle {
             style: Style {
@@ -13,35 +13,29 @@ pub fn setup_menu(mut commands: Commands, a: Res<GameAssets>) {
             color: Color::NONE.into(),
             ..default()
         })
-        .insert(CleanupMenu)
+        .insert(CleanupDeath)
         .with_children(|parent| {
             parent.spawn_bundle(
-                TextBundle::from_sections([
-                    TextSection::new(
-                        "bevy",
-                        TextStyle {
-                            font: a.font.clone(),
-                            font_size: 80.0,
-                            color: Color::RED,
-                        },
-                    ),
-                    TextSection::new(
-                        " jam",
-                        TextStyle {
-                            font: a.font.clone(),
-                            font_size: 80.0,
-                            color: Color::GREEN,
-                        },
-                    ),
-                    TextSection::new(
-                        " #002",
-                        TextStyle {
-                            font: a.font.clone(),
-                            font_size: 80.0,
-                            color: Color::BLUE,
-                        },
-                    ),
-                ])
+                TextBundle::from_section(
+                    "you died!",
+                    TextStyle {
+                        font: a.font.clone(),
+                        font_size: 80.0,
+                        color: Color::RED,
+                    },
+                )
+                .with_text_alignment(TextAlignment::TOP_CENTER),
+            );
+
+            parent.spawn_bundle(
+                TextBundle::from_section(
+                    &format!("Points: {}", score.0),
+                    TextStyle {
+                        font: a.font.clone(),
+                        font_size: 60.0,
+                        color: Color::WHITE,
+                    },
+                )
                 .with_text_alignment(TextAlignment::TOP_CENTER),
             );
 
@@ -54,10 +48,10 @@ pub fn setup_menu(mut commands: Commands, a: Res<GameAssets>) {
                     color: NORMAL_BUTTON.into(),
                     ..default()
                 })
-                .insert(PlayButton)
+                .insert(PlayAgainButton)
                 .with_children(|parent| {
                     parent.spawn_bundle(TextBundle::from_section(
-                        "Play",
+                        "Play again!",
                         TextStyle {
                             font: a.font.clone(),
                             font_size: 40.0,
@@ -69,11 +63,11 @@ pub fn setup_menu(mut commands: Commands, a: Res<GameAssets>) {
 }
 
 #[derive(Component)]
-pub struct PlayButton;
+pub struct PlayAgainButton;
 
-pub fn menu(
+pub fn death_screen(
     mut state: ResMut<State<GameState>>,
-    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<PlayButton>)>,
+    mut interaction_query: Query<&Interaction, (Changed<Interaction>, With<PlayAgainButton>)>,
 ) {
     for interaction in &mut interaction_query {
         if *interaction == Interaction::Clicked {
