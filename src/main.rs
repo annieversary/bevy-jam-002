@@ -31,8 +31,8 @@ pub enum GameState {
 
 pub const BEAM_LENGTH: f32 = 1000.0;
 pub const ENEMY_RADIUS: f32 = 50.0;
-pub const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-pub const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+pub const NORMAL_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+pub const HOVERED_BUTTON: Color = Color::rgb(0.3, 0.3, 0.3);
 pub const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
 fn main() {
@@ -53,8 +53,14 @@ fn main() {
         .insert_resource(PlayerHealth { health: 30 })
         .add_startup_system(setup)
         .add_system(button_interaction)
+        .add_system(update_mouse_pos)
         .add_system_set(SystemSet::on_enter(GameState::Menu).with_system(setup_menu))
-        .add_system_set(SystemSet::on_update(GameState::Menu).with_system(menu))
+        .add_system_set(
+            SystemSet::on_update(GameState::Menu)
+                .with_system(menu)
+                .with_system(rotate_menu_lights)
+                .with_system(menu_title_parallax),
+        )
         .add_system_set(SystemSet::on_exit(GameState::Menu).with_system(cleanup::<CleanupMenu>))
         .add_system_set(
             SystemSet::on_enter(GameState::Game)
@@ -67,7 +73,6 @@ fn main() {
                 .with_system(end_game_if_health_is_0)
                 .with_system(move_light_beam)
                 .with_system(update_beam_material)
-                .with_system(update_mouse_pos)
                 .with_system(update_closest_beam)
                 .with_system(spawn_enemies)
                 .with_system(move_enemies)
