@@ -1,2 +1,4 @@
 /target
 .DS_Store
+/luminity.zip
+/wasm_out/
