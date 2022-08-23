@@ -65,6 +65,7 @@ pub fn spawn_enemies(
         seconds: 0.0,
         under_damage: false,
     })
+    .insert(CleanupGame)
     .insert(c);
 }
 

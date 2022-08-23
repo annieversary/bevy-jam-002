@@ -24,6 +24,7 @@ pub fn setup_ui(mut cmd: Commands, asset_server: Res<AssetServer>) {
             ..default()
         }),
     )
+    .insert(CleanupGame)
     .insert(PlayerHealthText);
     cmd.spawn_bundle(
         TextBundle::from_section(
@@ -46,6 +47,7 @@ pub fn setup_ui(mut cmd: Commands, asset_server: Res<AssetServer>) {
             ..default()
         }),
     )
+    .insert(CleanupGame)
     .insert(PointsText);
 }
 

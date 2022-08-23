@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity, clippy::too_many_arguments)]
+
 use bevy::{
     math::Vec3Swizzles,
     prelude::*,
@@ -6,12 +8,14 @@ use bevy::{
 
 mod beams;
 mod enemies;
+mod menu;
 mod mouse;
 mod player;
 mod ui;
 
 use beams::*;
 use enemies::*;
+use menu::*;
 use mouse::*;
 use player::*;
 use ui::*;
@@ -20,6 +24,7 @@ fn main() {
     App::new()
         // .insert_resource(ClearColor(Color::WHITE))
         .add_plugins(DefaultPlugins)
+        .add_state(GameState::Menu)
         .add_plugin(Material2dPlugin::<BeamMaterial>::default())
         .add_plugin(Material2dPlugin::<EnemyMaterial>::default())
         .init_resource::<MousePos>()
@@ -29,39 +34,51 @@ fn main() {
         .insert_resource(EnemySpawnerTimer(Timer::from_seconds(1.0, true)))
         .insert_resource(PlayerHealth { health: 30 })
         .add_startup_system(setup)
-        .add_startup_system(setup_ui)
-        .add_system(move_player)
-        .add_system(end_game_if_health_is_0)
-        .add_system(move_light_beam)
-        .add_system(update_beam_material)
-        .add_system(update_mouse_pos)
-        .add_system(update_closest_beam)
-        .add_system(spawn_enemies)
-        .add_system(move_enemies)
-        .add_system(damage_enemies)
-        .add_system(damage_player)
-        .add_system(update_enemy_material)
-        .add_system(update_player_health_ui)
-        .add_system(update_points_ui)
+        .add_system_set(SystemSet::on_enter(GameState::Menu).with_system(setup_menu))
+        .add_system_set(SystemSet::on_update(GameState::Menu).with_system(menu))
+        .add_system_set(SystemSet::on_exit(GameState::Menu).with_system(cleanup::<CleanupMenu>))
+        .add_system_set(
+            SystemSet::on_enter(GameState::Game)
+                .with_system(game_setup)
+                .with_system(setup_ui),
+        )
+        .add_system_set(
+            SystemSet::on_update(GameState::Game)
+                .with_system(move_player)
+                .with_system(end_game_if_health_is_0)
+                .with_system(move_light_beam)
+                .with_system(update_beam_material)
+                .with_system(update_mouse_pos)
+                .with_system(update_closest_beam)
+                .with_system(spawn_enemies)
+                .with_system(move_enemies)
+                .with_system(damage_enemies)
+                .with_system(damage_player)
+                .with_system(update_enemy_material)
+                .with_system(update_player_health_ui)
+                .with_system(update_points_ui),
+        )
+        .add_system_set(SystemSet::on_exit(GameState::Game).with_system(cleanup::<CleanupGame>))
         .run();
 }
 
 const BEAM_LENGTH: f32 = 1000.0;
 const ENEMY_RADIUS: f32 = 50.0;
 
-fn setup(
-    mut commands: Commands,
-    a: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut beam_mats: ResMut<Assets<BeamMaterial>>,
-) {
+fn setup(mut commands: Commands, a: Res<AssetServer>) {
     a.watch_for_changes().unwrap();
 
     commands
         .spawn_bundle(Camera2dBundle::default())
         .insert(MainCamera);
+}
 
+fn game_setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut beam_mats: ResMut<Assets<BeamMaterial>>,
+) {
     let mesh = meshes.add(Mesh::from(shape::Quad::default()));
 
     let beams = [
@@ -88,7 +105,8 @@ fn setup(
                 ..default()
             })
             .insert(Pivot(pivot))
-            .insert(color);
+            .insert(color)
+            .insert(CleanupGame);
     }
 
     // player
@@ -101,7 +119,20 @@ fn setup(
             material: materials.add(ColorMaterial::from(Color::PURPLE)),
             ..default()
         })
+        .insert(CleanupGame)
         .insert(Player);
+}
+
+//
+
+#[derive(Component)]
+pub struct CleanupMenu;
+#[derive(Component)]
+pub struct CleanupGame;
+pub fn cleanup<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
 }
 
 // types and components
