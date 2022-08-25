@@ -14,7 +14,11 @@ pub fn update_mouse_pos(
 ) {
     // get the camera info and transform
     // assuming there is exactly one main camera entity, so query::single() is OK
-    let (camera, camera_transform) = q_camera.single();
+    let (camera, camera_transform) = if let Ok(c) = q_camera.get_single() {
+        c
+    } else {
+        return;
+    };
 
     // get the window that the camera is displaying to (or the primary window)
     let wnd = if let RenderTarget::Window(id) = camera.target {

@@ -1,7 +1,7 @@
 use crate::*;
 
 pub fn play_audio_when_enemy_dies(
-    a: Res<GameAssets>,
+    a: Res<AudioAssets>,
     enemy_death: EventReader<EnemyDead>,
     audio: Res<Audio>,
     mut idx: Local<usize>,
@@ -33,4 +33,20 @@ pub fn play_audio_when_enemy_dies(
     let music = melody[*idx % melody.len()].clone();
     audio.play(music);
     *idx += 1;
+}
+
+#[derive(AssetCollection)]
+pub struct AudioAssets {
+    #[asset(path = "sounds/music.ogg")]
+    pub music: Handle<AudioSource>,
+    #[asset(path = "sounds/enemy-c.ogg")]
+    enemy_killed_sound_c: Handle<AudioSource>,
+    #[asset(path = "sounds/enemy-d.ogg")]
+    enemy_killed_sound_d: Handle<AudioSource>,
+    #[asset(path = "sounds/enemy-e.ogg")]
+    enemy_killed_sound_e: Handle<AudioSource>,
+    #[asset(path = "sounds/enemy-f.ogg")]
+    enemy_killed_sound_f: Handle<AudioSource>,
+    #[asset(path = "sounds/enemy-g.ogg")]
+    enemy_killed_sound_g: Handle<AudioSource>,
 }

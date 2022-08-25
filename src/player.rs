@@ -39,7 +39,7 @@ pub fn end_game_if_health_is_0(health: Res<PlayerHealth>, mut state: ResMut<Stat
 pub fn change_player_sprite(
     mut query: Query<(&mut Handle<TextureAtlas>, &Transform), With<Player>>,
     enemies: Query<&Transform, (Without<Player>, With<Enemy>)>,
-    a: Res<GameAssets>,
+    a: Res<PlayerAssets>,
 ) {
     let (mut handle, player) = query.single_mut();
 
@@ -55,4 +55,45 @@ pub fn change_player_sprite(
     } else {
         a.player.clone()
     };
+}
+
+pub struct PlayerAssets {
+    pub player: Handle<TextureAtlas>,
+    pub player_neutral: Handle<TextureAtlas>,
+    pub player_sad: Handle<TextureAtlas>,
+}
+
+impl FromWorld for PlayerAssets {
+    fn from_world(world: &mut World) -> Self {
+        let cell = world.cell();
+        let mut textures = cell.get_resource_mut::<Assets<TextureAtlas>>().unwrap();
+
+        let game_assets = cell
+            .get_resource::<GameAssets>()
+            .expect("Failed to get GameAssets");
+
+        let player = textures.add(TextureAtlas::from_grid(
+            game_assets.player.clone(),
+            Vec2::new(32.0, 48.0),
+            8,
+            1,
+        ));
+        let player_neutral = textures.add(TextureAtlas::from_grid(
+            game_assets.player_neutral.clone(),
+            Vec2::new(32.0, 48.0),
+            8,
+            1,
+        ));
+        let player_sad = textures.add(TextureAtlas::from_grid(
+            game_assets.player_sad.clone(),
+            Vec2::new(32.0, 48.0),
+            8,
+            1,
+        ));
+        Self {
+            player,
+            player_neutral,
+            player_sad,
+        }
+    }
 }
