@@ -54,6 +54,7 @@ fn main() {
         .add_startup_system(setup)
         .add_system(button_interaction)
         .add_system(update_mouse_pos)
+        .add_system(animate_sprite)
         .add_system_set(SystemSet::on_enter(GameState::Menu).with_system(setup_menu))
         .add_system_set(
             SystemSet::on_update(GameState::Menu)
@@ -71,6 +72,7 @@ fn main() {
             SystemSet::on_update(GameState::Game)
                 .with_system(move_player)
                 .with_system(end_game_if_health_is_0)
+                .with_system(change_player_sprite)
                 .with_system(move_light_beam)
                 .with_system(update_beam_material)
                 .with_system(update_closest_beam)
@@ -102,13 +104,13 @@ pub struct GameStartTime(f64);
 fn game_setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     mut beam_mats: ResMut<Assets<BeamMaterial>>,
 
     mut health: ResMut<PlayerHealth>,
     mut score: ResMut<EnemiesKilled>,
     mut start: ResMut<GameStartTime>,
     time: Res<Time>,
+    a: Res<GameAssets>,
 ) {
     // reset resources
     health.health = 30;
@@ -147,16 +149,16 @@ fn game_setup(
 
     // player
     commands
-        .spawn_bundle(MaterialMesh2dBundle {
-            mesh: mesh.into(),
+        .spawn_bundle(SpriteSheetBundle {
             transform: Transform::default()
                 .with_translation(Vec3::new(-550.0, 0.0, 1.0))
-                .with_scale(Vec3::splat(50.)),
-            material: materials.add(ColorMaterial::from(Color::PURPLE)),
+                .with_scale(Vec3::splat(1.)),
+            texture_atlas: a.player.clone(),
             ..default()
         })
         .insert(CleanupGame)
-        .insert(Player);
+        .insert(Player)
+        .insert(AnimationTimer(Timer::from_seconds(0.1, true)));
 }
 
 //
@@ -257,13 +259,40 @@ impl Colour {
 
 pub struct GameAssets {
     font: Handle<Font>,
+    player: Handle<TextureAtlas>,
+    player_neutral: Handle<TextureAtlas>,
+    player_sad: Handle<TextureAtlas>,
 }
 impl FromWorld for GameAssets {
     fn from_world(world: &mut World) -> Self {
         let a = world.get_resource_mut::<AssetServer>().unwrap();
 
+        let font = a.load("fonts/gameplay.ttf");
+        let player = a.load("sprites/player.png");
+        let player_neutral = a.load("sprites/player-neutral.png");
+        let player_sad = a.load("sprites/player-sad.png");
+
+        let mut textures = world.get_resource_mut::<Assets<TextureAtlas>>().unwrap();
+
+        let player = textures.add(TextureAtlas::from_grid(player, Vec2::new(32.0, 48.0), 8, 1));
+        let player_neutral = textures.add(TextureAtlas::from_grid(
+            player_neutral,
+            Vec2::new(32.0, 48.0),
+            8,
+            1,
+        ));
+        let player_sad = textures.add(TextureAtlas::from_grid(
+            player_sad,
+            Vec2::new(32.0, 48.0),
+            8,
+            1,
+        ));
+
         Self {
-            font: a.load("fonts/gameplay.ttf"),
+            font,
+            player,
+            player_neutral,
+            player_sad,
         }
     }
 }
@@ -285,6 +314,26 @@ pub fn button_interaction(
             Interaction::None => {
                 *color = NORMAL_BUTTON.into();
             }
+        }
+    }
+}
+
+#[derive(Component, Deref, DerefMut)]
+pub struct AnimationTimer(Timer);
+fn animate_sprite(
+    time: Res<Time>,
+    texture_atlases: Res<Assets<TextureAtlas>>,
+    mut query: Query<(
+        &mut AnimationTimer,
+        &mut TextureAtlasSprite,
+        &Handle<TextureAtlas>,
+    )>,
+) {
+    for (mut timer, mut sprite, texture_atlas_handle) in &mut query {
+        timer.tick(time.delta());
+        if timer.just_finished() {
+            let texture_atlas = texture_atlases.get(texture_atlas_handle).unwrap();
+            sprite.index = (sprite.index + 1) % texture_atlas.textures.len();
         }
     }
 }

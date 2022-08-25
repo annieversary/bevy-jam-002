@@ -35,3 +35,24 @@ pub fn end_game_if_health_is_0(health: Res<PlayerHealth>, mut state: ResMut<Stat
         state.set(GameState::Death).unwrap();
     }
 }
+
+pub fn change_player_sprite(
+    mut query: Query<(&mut Handle<TextureAtlas>, &Transform), With<Player>>,
+    enemies: Query<&Transform, (Without<Player>, With<Enemy>)>,
+    a: Res<GameAssets>,
+) {
+    let (mut handle, player) = query.single_mut();
+
+    let mut min_dis = f32::MAX;
+    for enemy in &enemies {
+        min_dis = min_dis.min(enemy.translation.xy().distance(player.translation.xy()));
+    }
+
+    *handle = if min_dis < 100.0 {
+        a.player_sad.clone()
+    } else if min_dis < 400.0 {
+        a.player_neutral.clone()
+    } else {
+        a.player.clone()
+    };
+}
