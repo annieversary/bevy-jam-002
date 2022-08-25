@@ -6,6 +6,7 @@ use bevy::{
     sprite::{Material2dPlugin, MaterialMesh2dBundle},
 };
 
+mod audio;
 mod beams;
 mod death_screen;
 mod enemies;
@@ -14,6 +15,7 @@ mod mouse;
 mod player;
 mod ui;
 
+use audio::*;
 use beams::*;
 use death_screen::*;
 use enemies::*;
@@ -51,6 +53,7 @@ fn main() {
         .insert_resource(ClosestBeam(BeamColor::Green))
         .insert_resource(EnemySpawnerTimer(Timer::from_seconds(1.0, true)))
         .insert_resource(PlayerHealth { health: 30 })
+        .add_event::<EnemyDead>()
         .add_startup_system(setup)
         .add_system(button_interaction)
         .add_system(update_mouse_pos)
@@ -79,6 +82,7 @@ fn main() {
                 .with_system(spawn_enemies)
                 .with_system(move_enemies)
                 .with_system(damage_enemies)
+                .with_system(play_audio_when_enemy_dies)
                 .with_system(damage_player)
                 .with_system(update_enemy_material)
                 .with_system(update_player_health_ui)
@@ -91,12 +95,14 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, a: Res<AssetServer>) {
+fn setup(mut commands: Commands, a: Res<AssetServer>, ga: Res<GameAssets>, audio: Res<Audio>) {
     a.watch_for_changes().unwrap();
 
     commands
         .spawn_bundle(Camera2dBundle::default())
         .insert(MainCamera);
+
+    audio.play_with_settings(ga.music.clone(), PlaybackSettings::LOOP);
 }
 
 pub struct GameStartTime(f64);
@@ -262,6 +268,13 @@ pub struct GameAssets {
     player: Handle<TextureAtlas>,
     player_neutral: Handle<TextureAtlas>,
     player_sad: Handle<TextureAtlas>,
+
+    music: Handle<AudioSource>,
+    enemy_killed_sound_c: Handle<AudioSource>,
+    enemy_killed_sound_d: Handle<AudioSource>,
+    enemy_killed_sound_e: Handle<AudioSource>,
+    enemy_killed_sound_f: Handle<AudioSource>,
+    enemy_killed_sound_g: Handle<AudioSource>,
 }
 impl FromWorld for GameAssets {
     fn from_world(world: &mut World) -> Self {
@@ -271,6 +284,13 @@ impl FromWorld for GameAssets {
         let player = a.load("sprites/player.png");
         let player_neutral = a.load("sprites/player-neutral.png");
         let player_sad = a.load("sprites/player-sad.png");
+
+        let music = a.load("sounds/music.ogg");
+        let enemy_killed_sound_c = a.load("sounds/enemy-c.ogg");
+        let enemy_killed_sound_d = a.load("sounds/enemy-d.ogg");
+        let enemy_killed_sound_e = a.load("sounds/enemy-e.ogg");
+        let enemy_killed_sound_f = a.load("sounds/enemy-f.ogg");
+        let enemy_killed_sound_g = a.load("sounds/enemy-g.ogg");
 
         let mut textures = world.get_resource_mut::<Assets<TextureAtlas>>().unwrap();
 
@@ -293,6 +313,13 @@ impl FromWorld for GameAssets {
             player,
             player_neutral,
             player_sad,
+
+            music,
+            enemy_killed_sound_c,
+            enemy_killed_sound_d,
+            enemy_killed_sound_e,
+            enemy_killed_sound_f,
+            enemy_killed_sound_g,
         }
     }
 }
