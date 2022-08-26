@@ -172,7 +172,10 @@ fn game_setup(
         })
         .insert(CleanupGame)
         .insert(Player)
-        .insert(AnimationTimer(Timer::from_seconds(0.1, true)));
+        .insert(AnimationTimer {
+            timer: Timer::from_seconds(0.1, true),
+            paused: false,
+        });
 }
 
 //
@@ -321,8 +324,11 @@ pub fn button_interaction(
     }
 }
 
-#[derive(Component, Deref, DerefMut)]
-pub struct AnimationTimer(Timer);
+#[derive(Component)]
+pub struct AnimationTimer {
+    timer: Timer,
+    paused: bool,
+}
 fn animate_sprite(
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlas>>,
@@ -333,10 +339,14 @@ fn animate_sprite(
     )>,
 ) {
     for (mut timer, mut sprite, texture_atlas_handle) in &mut query {
-        timer.tick(time.delta());
-        if timer.just_finished() {
-            let texture_atlas = texture_atlases.get(texture_atlas_handle).unwrap();
-            sprite.index = (sprite.index + 1) % texture_atlas.textures.len();
+        if timer.paused {
+            sprite.index = 0;
+        } else {
+            timer.timer.tick(time.delta());
+            if timer.timer.just_finished() {
+                let texture_atlas = texture_atlases.get(texture_atlas_handle).unwrap();
+                sprite.index = (sprite.index + 1) % texture_atlas.textures.len();
+            }
         }
     }
 }

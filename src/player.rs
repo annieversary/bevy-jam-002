@@ -1,7 +1,7 @@
 use crate::*;
 
 pub fn move_player(
-    mut query: Query<&mut Transform, With<Player>>,
+    mut query: Query<(&mut Transform, &mut AnimationTimer), With<Player>>,
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
@@ -20,7 +20,9 @@ pub fn move_player(
     }
     diff *= 150.0 * time.delta_seconds();
 
-    for mut trans in &mut query {
+    for (mut trans, mut anim) in &mut query {
+        anim.paused = diff.length_squared() < 0.1;
+
         trans.translation.y = (diff.y + trans.translation.y).clamp(-120.0, 140.0);
         trans.translation.x = (diff.x + trans.translation.x).clamp(-600.0, -525.0);
     }
