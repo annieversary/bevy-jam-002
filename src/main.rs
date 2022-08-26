@@ -52,10 +52,11 @@ fn main() {
                 .continue_to_state(GameState::Menu)
                 .with_collection::<AudioAssets>()
                 .with_collection::<GameAssets>()
-                .init_resource::<PlayerAssets>(),
+                .with_collection::<EnemySymbols>()
+                .init_resource::<PlayerAssets>()
+                .init_resource::<EnemyAssets>(),
         )
         .init_resource::<MousePos>()
-        .init_resource::<EnemySymbols>()
         .insert_resource(EnemiesKilled(0))
         .insert_resource(GameStartTime(0.0))
         .insert_resource(ClosestBeam(BeamColor::Green))
@@ -164,9 +165,7 @@ fn game_setup(
     // player
     commands
         .spawn_bundle(SpriteSheetBundle {
-            transform: Transform::default()
-                .with_translation(Vec3::new(-550.0, 0.0, 1.0))
-                .with_scale(Vec3::splat(1.)),
+            transform: Transform::default().with_translation(Vec3::new(-550.0, 0.0, 1.0)),
             texture_atlas: a.player.clone(),
             ..default()
         })
@@ -284,23 +283,8 @@ pub struct GameAssets {
     player_neutral: Handle<Image>,
     #[asset(path = "sprites/player-sad.png")]
     player_sad: Handle<Image>,
-}
-impl FromWorld for GameAssets {
-    fn from_world(world: &mut World) -> Self {
-        let a = world.get_resource_mut::<AssetServer>().unwrap();
-
-        let font = a.load("fonts/gameplay.ttf");
-        let player = a.load("sprites/player.png");
-        let player_neutral = a.load("sprites/player-neutral.png");
-        let player_sad = a.load("sprites/player-sad.png");
-
-        Self {
-            font,
-            player,
-            player_neutral,
-            player_sad,
-        }
-    }
+    #[asset(path = "sprites/enemy.png")]
+    enemy: Handle<Image>,
 }
 
 pub fn button_interaction(

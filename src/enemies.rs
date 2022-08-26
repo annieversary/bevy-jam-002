@@ -21,6 +21,7 @@ pub fn spawn_enemies(
     mut mats: ResMut<Assets<EnemyMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     symbols: Res<EnemySymbols>,
+    a: Res<EnemyAssets>,
 ) {
     if !timer.tick(time.delta()).just_finished() {
         return;
@@ -53,12 +54,11 @@ pub fn spawn_enemies(
             Colour::White => symbols.white.clone(),
         },
     });
-    cmd.spawn_bundle(MaterialMesh2dBundle {
-        mesh: mesh.into(),
+    cmd.spawn_bundle(SpriteSheetBundle {
         transform: Transform::default()
             .with_translation(pivot.extend(1.0))
-            .with_scale(Vec3::new(40., 40.0, 1.0)),
-        material,
+            .with_scale(Vec3::splat(2.0)),
+        texture_atlas: a.enemy.clone(),
         ..default()
     })
     .insert(Enemy)
@@ -67,7 +67,21 @@ pub fn spawn_enemies(
         under_damage: false,
     })
     .insert(CleanupGame)
-    .insert(c);
+    .insert(c)
+    .insert(AnimationTimer {
+        timer: Timer::from_seconds(0.1, true),
+        paused: false,
+    })
+    .with_children(|parent| {
+        parent.spawn_bundle(MaterialMesh2dBundle {
+            mesh: mesh.into(),
+            transform: Transform::default()
+                .with_translation(Vec3::new(0.0, 0.0, 2.0))
+                .with_scale(Vec3::new(15., 15.0, 1.0)),
+            material,
+            ..default()
+        });
+    });
 }
 
 pub fn get_random_colour(rng: &mut ThreadRng, time: f64) -> Colour {
@@ -214,40 +228,64 @@ pub struct EnemyMaterial {
 }
 
 pub fn update_enemy_material(
-    query: Query<(&Handle<EnemyMaterial>, &Killable)>,
+    mut parents: Query<(&mut TextureAtlasSprite, &Killable)>,
+    children: Query<(&Handle<EnemyMaterial>, &Parent)>,
     mut a: ResMut<Assets<EnemyMaterial>>,
     time: Res<Time>,
 ) {
-    for (handle, killable) in &query {
+    for (handle, parent) in &children {
         if let Some(mat) = a.get_mut(handle) {
             mat.time = time.seconds_since_startup() as f32;
-            mat.damaged = killable.under_damage.then_some(1.0).unwrap_or_default();
+            if let Ok((_, killable)) = parents.get(**parent) {
+                mat.damaged = killable.under_damage.then_some(1.0).unwrap_or_default();
+            }
         }
+    }
+
+    for (mut atlas, killable) in &mut parents {
+        let s = (time.seconds_since_startup() * 6.0).sin() * 0.2 + 0.8;
+        let a = killable.under_damage.then_some(s).unwrap_or(1.0);
+        atlas.color.set_a(a as f32);
     }
 }
 
+#[derive(AssetCollection)]
 pub struct EnemySymbols {
+    #[asset(path = "sprites/symbols/red.png")]
     red: Handle<Image>,
+    #[asset(path = "sprites/symbols/green.png")]
     green: Handle<Image>,
+    #[asset(path = "sprites/symbols/blue.png")]
     blue: Handle<Image>,
+    #[asset(path = "sprites/symbols/yellow.png")]
     yellow: Handle<Image>,
+    #[asset(path = "sprites/symbols/magenta.png")]
     magenta: Handle<Image>,
+    #[asset(path = "sprites/symbols/cyan.png")]
     cyan: Handle<Image>,
+    #[asset(path = "sprites/symbols/white.png")]
     white: Handle<Image>,
 }
 
-impl FromWorld for EnemySymbols {
-    fn from_world(world: &mut World) -> Self {
-        let a = world.get_resource_mut::<AssetServer>().unwrap();
+pub struct EnemyAssets {
+    pub enemy: Handle<TextureAtlas>,
+}
 
-        EnemySymbols {
-            red: a.load("sprites/symbols/red.png"),
-            green: a.load("sprites/symbols/green.png"),
-            blue: a.load("sprites/symbols/blue.png"),
-            yellow: a.load("sprites/symbols/yellow.png"),
-            magenta: a.load("sprites/symbols/magenta.png"),
-            cyan: a.load("sprites/symbols/cyan.png"),
-            white: a.load("sprites/symbols/white.png"),
-        }
+impl FromWorld for EnemyAssets {
+    fn from_world(world: &mut World) -> Self {
+        let cell = world.cell();
+        let mut textures = cell.get_resource_mut::<Assets<TextureAtlas>>().unwrap();
+
+        let game_assets = cell
+            .get_resource::<GameAssets>()
+            .expect("Failed to get GameAssets");
+
+        let enemy = textures.add(TextureAtlas::from_grid(
+            game_assets.enemy.clone(),
+            Vec2::new(48.0, 48.0),
+            2,
+            1,
+        ));
+        Self { enemy }
     }
 }
